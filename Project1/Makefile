@@ -11,13 +11,13 @@ all: $(EXES)
 server: server.o
 	$(CXX) -o server server.o $(CXXFLAGS) $(LIBS)
 
-server.o: server.cc 
+server.o: server.cc util.h
 	$(CXX) -o server.o -c server.cc $(CXXFLAGS) $(LIBS)
 
 client: client.o
 	$(CXX) -o client client.o $(CXXFLAGS) $(LIBS)
 
-client.o: client.cc
+client.o: client.cc util.h
 	$(CXX) -o client.o -c client.cc $(CXXFLAGS) $(LIBS)
 
 # REMOVAL
