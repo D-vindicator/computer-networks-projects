@@ -12,13 +12,18 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <map>
 
 using namespace std;
 
+
 static int BUFFER_SIZE = 1024;
 enum command {REQUEST_CONNECT, REQUEST_USERINFO, USERINFO,
-AUTHENTICATED};
+AUTHENTICATED,LOGIN_DENIED};
 
+
+typedef unordered_map <string,string> string_map;
+typedef pair<string,string> string_map_element;
 
 istream& operator >> (istream& in, stringstream& ss){
 string s; in >> s; ss << s; return in;
@@ -60,3 +65,17 @@ int get_command(char* buffer)
 	}
 	return stoi(firstword);
 }
+
+string get_content(char* buffer)
+{
+	string content_str;
+	string buffer_str = buffer;
+	content_str = buffer_str.substr(buffer_str.find_first_of(' '),buffer_str.length());
+	return content_str;
+}
+
+
+
+
+
+

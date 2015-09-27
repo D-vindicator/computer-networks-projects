@@ -6,7 +6,27 @@ int main(int argc, char *argv[])
 	struct sockaddr_in server_addr, client_addr;
 	char buffer[BUFFER_SIZE];
 	socklen_t client_addr_len = sizeof(client_addr);
-	stringstream ss;
+	ifstream user_pass("user_pass.txt");
+	string_map user_pass_map;
+
+	if(user_pass.is_open())
+	{
+		string line, username, pwd;
+		string_map_element line_pair;
+		while(getline(user_pass,line))
+		{
+			//cout<<line<<endl;
+			stringstream ss(line);
+			ss>>username>>pwd;
+			user_pass_map[username] = pwd;
+		}
+		user_pass.close();
+	}
+	else
+	{
+		cout<<"unable to open user_pass.txt"<<endl;
+		exit(1);
+	}
 
 	if(argc < 2)
 	{
@@ -51,14 +71,20 @@ int main(int argc, char *argv[])
 		integrate_message(buffer,REQUEST_USERINFO);
 		write(new_socket, buffer, 1);
 		cout<<"REQUEST_USERINFO sent."<<endl;
-
 		bzero(buffer,BUFFER_SIZE);
 		read(new_socket, buffer, BUFFER_SIZE);
 		if (get_command(buffer) == USERINFO)
 		{
 			//authentication required here
 			cout<<"USERINFO received"<<endl;
-			integrate_message(buffer,AUTHENTICATED);
+			string userinfo_str =  get_content(buffer);
+			stringstream ss(userinfo_str);
+			string username, pwd;
+			ss>>username>>pwd;
+			if (user_pass_map.count(username) != 0 && user_pass_map[username] == pwd)
+				integrate_message(buffer,AUTHENTICATED);
+			else
+				integrate_message(buffer,LOGIN_DENIED);
 			write(new_socket, buffer, 1);
 		}
 	}
