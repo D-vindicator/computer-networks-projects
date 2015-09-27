@@ -6,6 +6,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in server_addr, client_addr;
 	char buffer[BUFFER_SIZE];
 	socklen_t client_addr_len = sizeof(client_addr);
+	stringstream ss;
 
 	if(argc < 2)
 	{
@@ -43,13 +44,25 @@ int main(int argc, char *argv[])
 		cout<<"reading socket error!"<<endl;
 		exit(1);
 	}
-	cout<<"Received message: "<<buffer<<endl;
 
-	if (write(new_socket, "message received", 20) < 0)
+	if (get_command(buffer) == REQUEST_CONNECT)
 	{
-		cout<<"writing socket error!"<<endl;
-		exit(1);
+		cout<<"REQUEST_CONNECT received."<<endl;
+		integrate_message(buffer,REQUEST_USERINFO);
+		write(new_socket, buffer, 1);
+		cout<<"REQUEST_USERINFO sent."<<endl;
+
+		bzero(buffer,BUFFER_SIZE);
+		read(new_socket, buffer, BUFFER_SIZE);
+		if (get_command(buffer) == USERINFO)
+		{
+			//authentication required here
+			cout<<"USERINFO received"<<endl;
+			integrate_message(buffer,AUTHENTICATED);
+			write(new_socket, buffer, 1);
+		}
 	}
+	
 
 	close(new_socket);
 	close(socket_server);
