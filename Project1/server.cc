@@ -23,7 +23,7 @@ void user_pass_handler(string_map &user_pass_map)
 	}
 }
 
-void client_handler(string_map &user_pass_map, int &new_socket)
+void client_handler(string_map user_pass_map, int new_socket)
 {
 // void client_handler(string_map &user_pass_map,int &socket_server, 
 // 	struct sockaddr_in &server_addr,struct sockaddr_in &client_addr)
@@ -105,10 +105,10 @@ int main(int argc, char *argv[])
 		socklen_t client_addr_len = sizeof(client_addr);
 		int new_socket = accept(socket_server,
 			(struct sockaddr *) &client_addr, &client_addr_len);
-		client_handler(user_pass_map,new_socket);
-		//if (new_socket >=0)
-		//	threads.push_back(thread(client_handler, 
-		//		user_pass_map, new_socket));
+		//client_handler(user_pass_map,new_socket);
+		if (new_socket >=0)
+			threads.push_back(thread(client_handler, 
+				user_pass_map, new_socket));
 	}
 	
 
