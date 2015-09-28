@@ -23,11 +23,16 @@ void user_pass_handler(string_map &user_pass_map)
 	}
 }
 
-void client_handler(string_map &user_pass_map,int &socket_server, 
-	struct sockaddr_in &server_addr,struct sockaddr_in &client_addr)
+void client_handler(string_map &user_pass_map, int &new_socket)
 {
-	socklen_t client_addr_len = sizeof(client_addr);
-	int new_socket = accept(socket_server,(struct sockaddr *) &client_addr, &client_addr_len);
+// void client_handler(string_map &user_pass_map,int &socket_server, 
+// 	struct sockaddr_in &server_addr,struct sockaddr_in &client_addr)
+// {
+	// socklen_t client_addr_len = sizeof(client_addr);
+	// int new_socket = accept(socket_server,(struct sockaddr *) &client_addr, &client_addr_len);
+	
+
+	//////
 	if (new_socket < 0)
 	{cout<<"accept error"<<endl;exit(1);}
 
@@ -53,7 +58,8 @@ void client_handler(string_map &user_pass_map,int &socket_server,
 			stringstream ss(get_content(buffer));
 			string username, pwd;
 			ss>>username>>pwd;
-			while(!(user_pass_map.count(username) != 0 && user_pass_map[username] == pwd))
+			while(!(user_pass_map.count(username) != 0 && 
+				user_pass_map[username] == pwd))
 			{
 				integrate_message(buffer,LOGIN_DENIED);
 				cout<<"client login denied"<<endl;
@@ -88,13 +94,23 @@ int main(int argc, char *argv[])
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = INADDR_ANY;
 	server_addr.sin_port = htons(atoi(argv[1]));
-	if (::bind(socket_server, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0)
+	if (::bind(socket_server, 
+		(struct sockaddr *) &server_addr, sizeof(server_addr)) < 0)
 	{ cout<<"bind error"<<endl; exit(1);}
 	cout<<"Server starts listening..."<<endl;
 	listen(socket_server,5);
 
-	client_handler(user_pass_map,socket_server, 
-		server_addr,client_addr);
+	while(1)
+	{
+		socklen_t client_addr_len = sizeof(client_addr);
+		int new_socket = accept(socket_server,
+			(struct sockaddr *) &client_addr, &client_addr_len);
+		client_handler(user_pass_map,new_socket);
+		//if (new_socket >=0)
+		//	threads.push_back(thread(client_handler, 
+		//		user_pass_map, new_socket));
+	}
+	
 
 	close(socket_server);
 	return 0;
