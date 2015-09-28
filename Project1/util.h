@@ -16,19 +16,16 @@
 
 using namespace std;
 
+typedef unordered_map <string,string> string_map;
+typedef pair<string,string> string_map_element;
 
 static int BUFFER_SIZE = 1024;
 enum command {REQUEST_CONNECT, REQUEST_USERINFO, USERINFO,
 AUTHENTICATED,LOGIN_DENIED};
 
-
-typedef unordered_map <string,string> string_map;
-typedef pair<string,string> string_map_element;
-
 istream& operator >> (istream& in, stringstream& ss){
 string s; in >> s; ss << s; return in;
 }
-
 
 void integrate_message(char* buffer, int cmd)
 {
