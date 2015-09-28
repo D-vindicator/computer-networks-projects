@@ -61,6 +61,7 @@ int get_command(char* buffer)
 	if(firstword.empty())
 	{
 		cout<<"error: empty command!"<<endl;
+		cout<<buffer<<endl;
 		exit(1);
 	}
 	return stoi(firstword);

@@ -27,8 +27,11 @@ int main(int argc, char *argv[])
 
 	bzero(buffer,BUFFER_SIZE);
 	read(socket_client, buffer, BUFFER_SIZE);
-	cout<<buffer<<endl;
 	//some timeout function should be here later
+
+
+
+/*
 	if (get_command(buffer) == REQUEST_USERINFO)
 	{
 		cout<<"Server requires user information."<<endl;
@@ -70,6 +73,34 @@ int main(int argc, char *argv[])
 		cout<<buffer<<endl;
 		write(socket_client,buffer,strlen(buffer));
 	}
+*/
+	if (get_command(buffer) != REQUEST_USERINFO)
+	{
+		cout<<"Unexpected server bahavior."<<endl;
+		exit(1);
+	}
+
+	do{
+		if(get_command(buffer) == LOGIN_DENIED)
+			cout<<"Wrong username or password"<<endl;
+		cout<<"Input your username and password"<<endl;
+		ss.str("");
+		cout<<"Username: ";
+		cin >> ss;
+		ss<<" ";
+		cout<<"Password: ";
+		cin >> ss;
+		integrate_message(buffer, USERINFO, ss.str());
+		write(socket_client,buffer,strlen(buffer));
+		bzero(buffer,BUFFER_SIZE);
+		read(socket_client,buffer, BUFFER_SIZE);
+	} while(get_command(buffer) != AUTHENTICATED);
+
+
+	cout<<"Welcome to Simiple Chat!"<<endl;
+	cout<<"Input your command to start!"<<endl;
+	cout<<">>>";
+
 
 
 

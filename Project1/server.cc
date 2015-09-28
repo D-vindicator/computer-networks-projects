@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	cout<<"Server started, listening..."<<endl;
 	listen(socket_server,5);
 	new_socket = accept(socket_server,(struct sockaddr *) &client_addr, &client_addr_len);
 	if (new_socket < 0)
@@ -77,14 +78,23 @@ int main(int argc, char *argv[])
 		{
 			//authentication required here
 			cout<<"USERINFO received"<<endl;
-			string userinfo_str =  get_content(buffer);
-			stringstream ss(userinfo_str);
+			//string userinfo_str =  get_content(buffer);
+			stringstream ss(get_content(buffer));
 			string username, pwd;
 			ss>>username>>pwd;
-			if (user_pass_map.count(username) != 0 && user_pass_map[username] == pwd)
-				integrate_message(buffer,AUTHENTICATED);
-			else
+			while(!(user_pass_map.count(username) != 0 && user_pass_map[username] == pwd))
+			{
 				integrate_message(buffer,LOGIN_DENIED);
+				cout<<"client login denied"<<endl;
+				write(new_socket, buffer, 1);
+				bzero(buffer,BUFFER_SIZE);
+				read(new_socket, buffer, BUFFER_SIZE);
+				stringstream ss(get_content(buffer));
+				ss>>username>>pwd;
+			}
+
+			integrate_message(buffer,AUTHENTICATED);
+			cout<<"client authenticated"<<endl;
 			write(new_socket, buffer, 1);
 		}
 	}
