@@ -38,7 +38,15 @@ int command_parser(string &content)
 	return result;
 }
 
-
+void command_handler(char *buffer)
+{
+	int cur_command = get_command(buffer);
+	string cur_content = get_content(buffer);
+	if (cur_command == CLIENT_DISP)
+	{
+		list_display(cur_content);
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -100,21 +108,26 @@ int main(int argc, char *argv[])
 	while(1)
 	{
 		cout<<">>>";
+		stringstream ss;
 		ss.str("");
 		cin>>ss;
+		cout<<"ss:"<<ss.str()<<endl;
 		string temp_str, cur_content;
 		ss>>cur_content;
+		cout<<"cur_content:"<<cur_content<<endl;
 		cur_command = command_parser(cur_content);
+		cout<<"cur_command:"<<cur_command<<endl;
 		if (cur_command >= 0 &&cur_command != LOGOUT)
 		{
 			integrate_message(buffer, cur_command, cur_content);
 			write(socket_client,buffer,strlen(buffer));
 			bzero(buffer,BUFFER_SIZE);
 			read(socket_client,buffer, BUFFER_SIZE);
+			command_handler(buffer);
 		}
 		else
 			{
-				integrate_message(buffer, cur_command, cur_content);
+				integrate_message(buffer, LOGOUT);
 				write(socket_client,buffer,strlen(buffer));
 				cout<<"client logged out"<<endl;
 				break;

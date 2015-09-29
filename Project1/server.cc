@@ -1,11 +1,11 @@
 #include "./util.h"
 
 vector<thread> threads;
-user_map user_pass_map;
+user_map users;
 mutex user_map_lock;
 
 
-void user_pass_handler(user_map &user_pass_map)
+void user_pass_handler(user_map &users)
 {
 	ifstream user_pass("user_pass.txt");
 	if(user_pass.is_open())
@@ -17,8 +17,7 @@ void user_pass_handler(user_map &user_pass_map)
 			//cout<<line<<endl;
 			stringstream ss(line);
 			ss>>username>>pwd;
-			user_pass_map[username].username = username;
-			user_pass_map[username].password = pwd;
+			users.initial_user(username,pwd);
 		}
 		user_pass.close();
 	}
@@ -29,7 +28,7 @@ void user_pass_handler(user_map &user_pass_map)
 	}
 }
 
-string login_handler(char* buffer, user_map *user_pass_map, int new_socket)
+string login_handler(char* buffer, user_map *users, int new_socket)
 {
 	string username;
 	bzero(buffer,BUFFER_SIZE);
@@ -43,8 +42,7 @@ string login_handler(char* buffer, user_map *user_pass_map, int new_socket)
 		string pwd;
 		ss>>username>>pwd;
 		int login_count= 1;
-		while(!((*user_pass_map).count(username) != 0 && 
-			(*user_pass_map)[username].password == pwd) and
+		while(!(*users).correct_password(username,pwd) and
 			 login_count < CONSECUTIVE_FAILURES)
 		{
 			login_count++;
@@ -57,11 +55,10 @@ string login_handler(char* buffer, user_map *user_pass_map, int new_socket)
 			ss>>username>>pwd;
 		}
 
-		if ( (*user_pass_map).count(username) != 0 && 
-			(*user_pass_map)[username].password == pwd )
+		if ((*users).correct_password(username,pwd))
 		{
 			user_map_lock.lock();
-			(*user_pass_map)[username].connection_status = ONLINE;
+			(*users).get_online(username,new_socket);
 			user_map_lock.unlock();
 			integrate_message(buffer,AUTHENTICATED);
 			cout<<"AUTHENTICATED"<<endl;
@@ -78,7 +75,37 @@ string login_handler(char* buffer, user_map *user_pass_map, int new_socket)
 	return username;
 }
 
-void client_handler(user_map *user_pass_map, int new_socket)
+int command_handler(int cur_socket, char* buffer, user_map *users)
+{
+	int cur_command = get_command(buffer);
+	string cur_content = get_content(buffer);
+	int reply_command = IGNORE;
+	string reply_content;
+	int reply_socket;
+	if (cur_command == WHOELSE)
+	{
+		stringstream ss("");
+		for (int i = 0; i < (*users).online_users.size() ; i ++)
+		{
+			ss<<(*users).online_users[i];
+		}
+		reply_content = ss.str();
+		reply_command = CLIENT_DISP;
+		reply_socket = cur_socket;
+	}
+	else
+		return -1;
+	
+	if (reply_command != IGNORE)
+	{
+		integrate_message(buffer,reply_command,reply_content);
+		write(reply_socket,buffer,strlen(buffer));
+	}
+
+	return 0;
+}
+
+void client_handler(user_map *users, int new_socket)
 {
 
 	char buffer[BUFFER_SIZE];
@@ -93,7 +120,7 @@ void client_handler(user_map *user_pass_map, int new_socket)
 		write(new_socket, buffer, 1);
 		cout<<"REQUEST_USERINFO sent."<<endl;
 
-		string username = login_handler(buffer,user_pass_map,new_socket);
+		string username = login_handler(buffer,users,new_socket);
 
 		int cur_command;
 		do{
@@ -101,9 +128,11 @@ void client_handler(user_map *user_pass_map, int new_socket)
 			read(new_socket, buffer, BUFFER_SIZE);
 			cur_command = get_command(buffer);
 			//command handler
+			command_handler(new_socket, buffer, users);
+
 		}while(cur_command != LOGOUT);
 		user_map_lock.lock();
-		(*user_pass_map)[username].connection_status = OFFLINE;
+		(*users).get_offline(username);
 		user_map_lock.unlock();
 	}
 	close(new_socket);
@@ -111,7 +140,7 @@ void client_handler(user_map *user_pass_map, int new_socket)
 
 int main(int argc, char *argv[])
 {
-	user_pass_handler(user_pass_map);
+	user_pass_handler(users);
 
 	int socket_server;
 	if(argc < 2)
@@ -133,10 +162,9 @@ int main(int argc, char *argv[])
 		socklen_t client_addr_len = sizeof(client_addr);
 		int new_socket = accept(socket_server,
 			(struct sockaddr *) &client_addr, &client_addr_len);
-		//client_handler(user_pass_map,new_socket);
 		if (new_socket >=0)
 			threads.push_back(thread(client_handler, 
-				&user_pass_map, new_socket));
+				&users, new_socket));
 	}
 	
 
