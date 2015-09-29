@@ -1,5 +1,44 @@
 #include "./util.h"
 
+int command_parser(string &content)
+{
+	string firstword, temp_str;
+	stringstream ss;
+	ss.str(content);
+	int result = -1;
+
+	ss>>firstword;
+	if(firstword.empty())
+		exit(1);
+
+	if (firstword == "logout")
+		result = LOGOUT;
+	else if(firstword == "whoelse")
+		result = WHOELSE;
+	else if(firstword == "wholast")
+		result = WHOLAST;
+	else if(firstword == "message")
+		result = MESSAGE_TO;
+	else if(firstword == "broadcase")
+	{
+		ss>>temp_str;
+		if (temp_str == "message")
+			result = BROAD_MESSAGE;
+		else if(temp_str == "user")
+			result = BROAD_USER;
+	}
+	else
+		cout<<"undefined command"<<endl;
+ 
+	if (content.find(' ') != string::npos)
+		content = content.substr(content.find_first_of(' '),content.length());
+	else
+		content ="";
+
+	return result;
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -29,51 +68,6 @@ int main(int argc, char *argv[])
 	read(socket_client, buffer, BUFFER_SIZE);
 	//some timeout function should be here later
 
-
-
-/*
-	if (get_command(buffer) == REQUEST_USERINFO)
-	{
-		cout<<"Server requires user information."<<endl;
-		ss.str("");
-		cout<<"Username: ";
-		cin >> ss;
-		ss<<" ";
-		cout<<"Password: ";
-		cin >> ss;
-		integrate_message(buffer, USERINFO, ss.str());
-		cout<<buffer<<endl;
-		write(socket_client,buffer,strlen(buffer));
-	}
-	else
-	{
-		cout<<"Unexpected server bahavior."<<endl;
-		exit(1);
-	}
-
-	bzero(buffer,BUFFER_SIZE);
-	read(socket_client,buffer, BUFFER_SIZE);
-
-	if (get_command(buffer) == AUTHENTICATED)
-	{
-		cout<<"Welcome to Simiple Chat!"<<endl;
-		cout<<"Input your command to start!"<<endl;
-		cout<<">>>";
-	}
-	else if(get_command(buffer) == LOGIN_DENIED)
-	{
-		cout<<"Wrong username/password, try again"<<endl;
-		ss.str("");
-		cout<<"Username: ";
-		cin >> ss;
-		ss<<" ";
-		cout<<"Password: ";
-		cin >> ss;
-		integrate_message(buffer, USERINFO, ss.str());
-		cout<<buffer<<endl;
-		write(socket_client,buffer,strlen(buffer));
-	}
-*/
 	if (get_command(buffer) != REQUEST_USERINFO)
 	{
 		cout<<"Unexpected server bahavior."<<endl;
@@ -94,18 +88,42 @@ int main(int argc, char *argv[])
 		write(socket_client,buffer,strlen(buffer));
 		bzero(buffer,BUFFER_SIZE);
 		read(socket_client,buffer, BUFFER_SIZE);
-	} while(get_command(buffer) != AUTHENTICATED);
+		if (get_command(buffer) == LOGIN_BLOCKED)
+		{cout<<"login is blocked for some time, please restart the client"<<endl; exit(1);}
+	} while(get_command(buffer) == LOGIN_DENIED);
 
 
 	cout<<"Welcome to Simiple Chat!"<<endl;
 	cout<<"Input your command to start!"<<endl;
-	cout<<">>>";
 
-
-
-
+	int cur_command = -1;
+	while(1)
+	{
+		cout<<">>>";
+		ss.str("");
+		cin>>ss;
+		string temp_str, cur_content;
+		ss>>cur_content;
+		cur_command = command_parser(cur_content);
+		if (cur_command >= 0 &&cur_command != LOGOUT)
+		{
+			integrate_message(buffer, cur_command, cur_content);
+			write(socket_client,buffer,strlen(buffer));
+			bzero(buffer,BUFFER_SIZE);
+			read(socket_client,buffer, BUFFER_SIZE);
+		}
+		else
+			{
+				integrate_message(buffer, cur_command, cur_content);
+				write(socket_client,buffer,strlen(buffer));
+				cout<<"client logged out"<<endl;
+				break;
+			}
+		
+	}
 
 	close(socket_client);
 	freeaddrinfo(serverinfo);
 	return 0;
 }
+

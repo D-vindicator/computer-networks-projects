@@ -1,18 +1,24 @@
 #include "./util.h"
 
-void user_pass_handler(string_map &user_pass_map)
+vector<thread> threads;
+user_map user_pass_map;
+mutex user_map_lock;
+
+
+void user_pass_handler(user_map &user_pass_map)
 {
 	ifstream user_pass("user_pass.txt");
 	if(user_pass.is_open())
 	{
 		string line, username, pwd;
-		string_map_element line_pair;
+		Client_user client_user;
 		while(getline(user_pass,line))
 		{
 			//cout<<line<<endl;
 			stringstream ss(line);
 			ss>>username>>pwd;
-			user_pass_map[username] = pwd;
+			user_pass_map[username].username = username;
+			user_pass_map[username].password = pwd;
 		}
 		user_pass.close();
 	}
@@ -23,19 +29,57 @@ void user_pass_handler(string_map &user_pass_map)
 	}
 }
 
-void client_handler(string_map user_pass_map, int new_socket)
+string login_handler(char* buffer, user_map *user_pass_map, int new_socket)
 {
-// void client_handler(string_map &user_pass_map,int &socket_server, 
-// 	struct sockaddr_in &server_addr,struct sockaddr_in &client_addr)
-// {
-	// socklen_t client_addr_len = sizeof(client_addr);
-	// int new_socket = accept(socket_server,(struct sockaddr *) &client_addr, &client_addr_len);
-	
+	string username;
+	bzero(buffer,BUFFER_SIZE);
+	read(new_socket, buffer, BUFFER_SIZE);
+	if (get_command(buffer) == USERINFO)
+	{
+		//authentication required here
+		cout<<"USERINFO received"<<endl;
+		//string userinfo_str =  get_content(buffer);
+		stringstream ss(get_content(buffer));
+		string pwd;
+		ss>>username>>pwd;
+		int login_count= 1;
+		while(!((*user_pass_map).count(username) != 0 && 
+			(*user_pass_map)[username].password == pwd) and
+			 login_count < CONSECUTIVE_FAILURES)
+		{
+			login_count++;
+			integrate_message(buffer,LOGIN_DENIED);
+			cout<<"LOGIN_DENIED"<<endl;
+			write(new_socket, buffer, 1);
+			bzero(buffer,BUFFER_SIZE);
+			read(new_socket, buffer, BUFFER_SIZE);
+			stringstream ss(get_content(buffer));
+			ss>>username>>pwd;
+		}
 
-	//////
-	if (new_socket < 0)
-	{cout<<"accept error"<<endl;exit(1);}
+		if ( (*user_pass_map).count(username) != 0 && 
+			(*user_pass_map)[username].password == pwd )
+		{
+			user_map_lock.lock();
+			(*user_pass_map)[username].connection_status = ONLINE;
+			user_map_lock.unlock();
+			integrate_message(buffer,AUTHENTICATED);
+			cout<<"AUTHENTICATED"<<endl;
+			write(new_socket, buffer, 1);
+		}
+		else
+		{
+			integrate_message(buffer,LOGIN_BLOCKED);
+			cout<<"LOGIN_BLOCKED"<<endl;
+			write(new_socket,buffer,1);
+		}
 
+	}
+	return username;
+}
+
+void client_handler(user_map *user_pass_map, int new_socket)
+{
 
 	char buffer[BUFFER_SIZE];
 	bzero(buffer,BUFFER_SIZE);
@@ -48,41 +92,25 @@ void client_handler(string_map user_pass_map, int new_socket)
 		integrate_message(buffer,REQUEST_USERINFO);
 		write(new_socket, buffer, 1);
 		cout<<"REQUEST_USERINFO sent."<<endl;
-		bzero(buffer,BUFFER_SIZE);
-		read(new_socket, buffer, BUFFER_SIZE);
-		if (get_command(buffer) == USERINFO)
-		{
-			//authentication required here
-			cout<<"USERINFO received"<<endl;
-			//string userinfo_str =  get_content(buffer);
-			stringstream ss(get_content(buffer));
-			string username, pwd;
-			ss>>username>>pwd;
-			while(!(user_pass_map.count(username) != 0 && 
-				user_pass_map[username] == pwd))
-			{
-				integrate_message(buffer,LOGIN_DENIED);
-				cout<<"client login denied"<<endl;
-				write(new_socket, buffer, 1);
-				bzero(buffer,BUFFER_SIZE);
-				read(new_socket, buffer, BUFFER_SIZE);
-				stringstream ss(get_content(buffer));
-				ss>>username>>pwd;
-			}
 
-			integrate_message(buffer,AUTHENTICATED);
-			cout<<"client authenticated"<<endl;
-			write(new_socket, buffer, 1);
-		}
+		string username = login_handler(buffer,user_pass_map,new_socket);
+
+		int cur_command;
+		do{
+			bzero(buffer,BUFFER_SIZE);
+			read(new_socket, buffer, BUFFER_SIZE);
+			cur_command = get_command(buffer);
+			//command handler
+		}while(cur_command != LOGOUT);
+		user_map_lock.lock();
+		(*user_pass_map)[username].connection_status = OFFLINE;
+		user_map_lock.unlock();
 	}
 	close(new_socket);
 }
 
 int main(int argc, char *argv[])
 {
-	vector<thread> threads;
-	string_map user_pass_map;
-
 	user_pass_handler(user_pass_map);
 
 	int socket_server;
@@ -108,7 +136,7 @@ int main(int argc, char *argv[])
 		//client_handler(user_pass_map,new_socket);
 		if (new_socket >=0)
 			threads.push_back(thread(client_handler, 
-				user_pass_map, new_socket));
+				&user_pass_map, new_socket));
 	}
 	
 

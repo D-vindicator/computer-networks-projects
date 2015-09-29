@@ -18,11 +18,16 @@
 using namespace std;
 
 typedef unordered_map <string,string> string_map;
-typedef pair<string,string> string_map_element;
 
 static int BUFFER_SIZE = 1024;
+static int CONSECUTIVE_FAILURES = 3;
+static int BLOCK_TIME = 60;
 enum command {REQUEST_CONNECT, REQUEST_USERINFO, USERINFO,
-AUTHENTICATED,LOGIN_DENIED};
+AUTHENTICATED, LOGIN_DENIED, LOGIN_BLOCKED
+
+,LOGOUT, WHOELSE, BROAD_MESSAGE, BROAD_USER, WHOLAST, MESSAGE_TO
+
+,ONLINE, OFFLINE};
 
 istream& operator >> (istream& in, stringstream& ss){
 string s; in >> s; ss << s; return in;
@@ -65,6 +70,7 @@ int get_command(char* buffer)
 	return stoi(firstword);
 }
 
+
 string get_content(char* buffer)
 {
 	string content_str;
@@ -73,8 +79,22 @@ string get_content(char* buffer)
 	return content_str;
 }
 
+string get_content(string buffer_str)
+{
+	return buffer_str.substr(buffer_str.find_first_of(' '),buffer_str.length());
+}
 
 
+class Client_user
+{
+public:
+	string username;
+	string password;
+	int socket_num = -1;
+	int connection_status = OFFLINE;
+	//last_active_time
+};
 
+typedef unordered_map <string,Client_user> user_map;
 
 
