@@ -30,10 +30,12 @@ int command_parser(string &content)
 	else
 		cout<<"undefined command"<<endl;
  
-	if (content.find(' ') != string::npos)
-		content = content.substr(content.find_first_of(' '),content.length());
-	else
-		content ="";
+//	if (content.find(' ') != string::npos)
+//		content = content.substr(content.find_first_of(' '),content.length());
+//	else
+//		content ="";
+    
+    content = get_content(content);
 
 	return result;
 }
@@ -42,10 +44,13 @@ void command_handler(char *buffer)
 {
 	int cur_command = get_command(buffer);
 	string cur_content = get_content(buffer);
-	if (cur_command == CLIENT_DISP)
+	if (cur_command == CLIENT_LIST)
 	{
 		list_display(cur_content);
 	}
+    else if (cur_command == CLIENT_DISP) {
+        cout<< cur_content<<endl;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -54,7 +59,7 @@ int main(int argc, char *argv[])
 	struct sockaddr server_addr;
 	struct addrinfo *serverinfo;
 	char buffer[BUFFER_SIZE];
-	stringstream ss;
+    stringstream ss;
 
 
 	if (argc < 3)
@@ -105,25 +110,23 @@ int main(int argc, char *argv[])
 	cout<<"Input your command to start!"<<endl;
 
 	int cur_command = -1;
+    cin.ignore();
 	while(1)
 	{
-		cout<<">>>";
-		stringstream ss;
-		ss.str("");
-		cin>>ss;
-		cout<<"ss:"<<ss.str()<<endl;
-		string temp_str, cur_content;
-		ss>>cur_content;
-		cout<<"cur_content:"<<cur_content<<endl;
+		string cur_content;
+        cout<<">>>";
+        getline(cin, cur_content);
 		cur_command = command_parser(cur_content);
-		cout<<"cur_command:"<<cur_command<<endl;
 		if (cur_command >= 0 &&cur_command != LOGOUT)
 		{
 			integrate_message(buffer, cur_command, cur_content);
 			write(socket_client,buffer,strlen(buffer));
-			bzero(buffer,BUFFER_SIZE);
-			read(socket_client,buffer, BUFFER_SIZE);
-			command_handler(buffer);
+            if (cur_command == WHOELSE or cur_command == WHOLAST) {
+                bzero(buffer,BUFFER_SIZE);
+                read(socket_client,buffer, BUFFER_SIZE);
+                command_handler(buffer);
+            }
+			
 		}
 		else
 			{

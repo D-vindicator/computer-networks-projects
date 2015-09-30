@@ -4,7 +4,6 @@ vector<thread> threads;
 user_map users;
 mutex user_map_lock;
 
-
 void user_pass_handler(user_map &users)
 {
 	ifstream user_pass("user_pass.txt");
@@ -75,26 +74,36 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 	return username;
 }
 
-int command_handler(int cur_socket, char* buffer, user_map *users)
+
+int command_handler(string selfname, int cur_socket, char* buffer, user_map *users)
 {
 	int cur_command = get_command(buffer);
 	string cur_content = get_content(buffer);
 	int reply_command = IGNORE;
 	string reply_content;
 	int reply_socket;
+    
 	if (cur_command == WHOELSE)
 	{
-		stringstream ss("");
-		for (int i = 0; i < (*users).online_users.size() ; i ++)
-		{
-			ss<<(*users).online_users[i];
-		}
-		reply_content = ss.str();
+        
+		reply_content = (*users).get_online_user(selfname);
 		reply_command = CLIENT_DISP;
 		reply_socket = cur_socket;
 	}
-	else
-		return -1;
+	else if (cur_command == MESSAGE_TO)
+    {
+        reply_command = CLIENT_DISP;
+        reply_socket = (*users).private_message_handler(selfname, cur_content, reply_content);
+        
+    }
+	
+    
+    
+    else
+        return -1;
+    
+    
+    
 	
 	if (reply_command != IGNORE)
 	{
@@ -127,8 +136,7 @@ void client_handler(user_map *users, int new_socket)
 			bzero(buffer,BUFFER_SIZE);
 			read(new_socket, buffer, BUFFER_SIZE);
 			cur_command = get_command(buffer);
-			//command handler
-			command_handler(new_socket, buffer, users);
+			command_handler(username, new_socket, buffer, users);
 
 		}while(cur_command != LOGOUT);
 		user_map_lock.lock();
@@ -168,6 +176,6 @@ int main(int argc, char *argv[])
 	}
 	
 
-	close(socket_server);
+	//close(socket_server);
 	return 0;
 }
