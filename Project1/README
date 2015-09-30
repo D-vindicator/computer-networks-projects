@@ -3,5 +3,7 @@ README
 
 
 Not implemented:
+
 BLOCK_TIME
 Same user login 
+Ctrl+C server shut down

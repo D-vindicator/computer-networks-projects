@@ -13,7 +13,6 @@ void user_pass_handler(user_map &users)
 		Client_user client_user;
 		while(getline(user_pass,line))
 		{
-			//cout<<line<<endl;
 			stringstream ss(line);
 			ss>>username>>pwd;
 			users.initial_user(username,pwd);
@@ -34,9 +33,7 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 	read(new_socket, buffer, BUFFER_SIZE);
 	if (get_command(buffer) == USERINFO)
 	{
-		//authentication required here
 		cout<<"USERINFO received"<<endl;
-		//string userinfo_str =  get_content(buffer);
 		stringstream ss(get_content(buffer));
 		string pwd;
 		ss>>username>>pwd;
@@ -69,11 +66,9 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 			cout<<"LOGIN_BLOCKED"<<endl;
 			write(new_socket,buffer,1);
 		}
-
 	}
 	return username;
 }
-
 
 int command_handler(string selfname, int cur_socket, char* buffer, user_map *users)
 {
@@ -82,10 +77,8 @@ int command_handler(string selfname, int cur_socket, char* buffer, user_map *use
 	int reply_command = IGNORE;
 	string reply_content;
 	int reply_socket;
-    
 	if (cur_command == WHOELSE)
 	{
-        
 		reply_content = (*users).get_online_user(selfname);
 		reply_command = CLIENT_DISP;
 		reply_socket = cur_socket;
@@ -96,48 +89,35 @@ int command_handler(string selfname, int cur_socket, char* buffer, user_map *use
         reply_socket = (*users).private_message_handler(selfname, cur_content, reply_content);
         
     }
-	
-    
-    
     else
         return -1;
-    
-    
-    
-	
 	if (reply_command != IGNORE)
 	{
 		integrate_message(buffer,reply_command,reply_content);
 		write(reply_socket,buffer,strlen(buffer));
 	}
-
 	return 0;
 }
 
 void client_handler(user_map *users, int new_socket)
 {
-
 	char buffer[BUFFER_SIZE];
 	bzero(buffer,BUFFER_SIZE);
 	if (read(new_socket, buffer, BUFFER_SIZE) < 0)
 	{cout<<"reading new_socket error!"<<endl;exit(1);}
-
 	if (get_command(buffer) == REQUEST_CONNECT)
 	{
 		cout<<"REQUEST_CONNECT received."<<endl;
 		integrate_message(buffer,REQUEST_USERINFO);
 		write(new_socket, buffer, 1);
 		cout<<"REQUEST_USERINFO sent."<<endl;
-
 		string username = login_handler(buffer,users,new_socket);
-
 		int cur_command;
 		do{
 			bzero(buffer,BUFFER_SIZE);
 			read(new_socket, buffer, BUFFER_SIZE);
 			cur_command = get_command(buffer);
 			command_handler(username, new_socket, buffer, users);
-
 		}while(cur_command != LOGOUT);
 		user_map_lock.lock();
 		(*users).get_offline(username);
@@ -149,7 +129,6 @@ void client_handler(user_map *users, int new_socket)
 int main(int argc, char *argv[])
 {
 	user_pass_handler(users);
-
 	int socket_server;
 	if(argc < 2)
 	{ cout<<"inadequate input"<<endl;exit(1);}
@@ -164,7 +143,6 @@ int main(int argc, char *argv[])
 	{ cout<<"bind error"<<endl; exit(1);}
 	cout<<"Server starts listening..."<<endl;
 	listen(socket_server,5);
-
 	while(1)
 	{
 		socklen_t client_addr_len = sizeof(client_addr);
@@ -174,8 +152,5 @@ int main(int argc, char *argv[])
 			threads.push_back(thread(client_handler, 
 				&users, new_socket));
 	}
-	
-
-	//close(socket_server);
 	return 0;
 }

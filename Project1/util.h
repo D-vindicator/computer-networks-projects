@@ -18,6 +18,7 @@
 #include <map>
 #include <string.h>
 #include <algorithm>
+#include <time.h>
 
 using namespace std;
 
@@ -91,7 +92,8 @@ string get_content(char* buffer)
 {
 	string content_str;
 	string buffer_str = buffer;
-	content_str = buffer_str.substr(buffer_str.find_first_of(' ')+1,buffer_str.length());
+    content_str = buffer_str.substr(buffer_str.find_first_of(' ')+1,buffer_str.length());
+
 	return content_str;
 }
 
