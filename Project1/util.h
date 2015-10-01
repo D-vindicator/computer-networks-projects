@@ -19,6 +19,7 @@
 #include <string.h>
 #include <algorithm>
 #include <time.h>
+#include <stdio.h>
 
 using namespace std;
 
@@ -34,20 +35,21 @@ AUTHENTICATED, LOGIN_DENIED, LOGIN_BLOCKED, CLIENT_DISP, CLIENT_LIST
 
 ,ONLINE, OFFLINE};
 
-istream& operator >> (istream& in, stringstream& ss){
-string s; in >> s; ss << s; return in;
+istream& operator >> (istream& in, stringstream& ss)
+{
+    string s; in >> s; ss << s; return in;
 }
 
 void list_display(string content)
 {
-	for (int i = 0; i < content.size(); ++i)
+    for (int i = 0; i < content.size(); ++i)
 	{
 		if (content[i] == ' ')
 			cout<<endl;
 		else
 			cout<<content[i];
 	}
-	cout<<endl;
+
 }
 
 void integrate_message(char* buffer, int cmd)
@@ -87,7 +89,6 @@ int get_command(char* buffer)
 	return stoi(firstword);
 }
 
-
 string get_content(char* buffer)
 {
 	string content_str;
@@ -96,12 +97,6 @@ string get_content(char* buffer)
 
 	return content_str;
 }
-
-
-//string get_content(string buffer_str)
-//{
-//	return buffer_str.substr(buffer_str.find_first_of(' '),buffer_str.length());
-//}
 
 string get_content(string content)
 {
@@ -117,21 +112,18 @@ class Client_user
 {
 public:
 	int socket_num = -1;
-
 	int connection_status = OFFLINE;
-
+    time_t last_active_time;
 	string username;
 	string password;
 
 	//last_active_time
 };
 
-
-
 class user_map
 {
 public:
-	unordered_map <string,Client_user> users;
+	map <string,Client_user> users;
 	vector<string> online_users;
 
 	void initial_user(string username, string pwd)
@@ -151,13 +143,18 @@ public:
 		return (users[username].connection_status == OFFLINE && if_user_exists(username) != 0 &&
 			users[username].password == pwd_to_check);
 	}
+    
+    void update_time(string username)
+    {
+        time(&(users[username].last_active_time));
+    }
 
 	void get_online(string username,int Nsocket)//modify
 	{
 		users[username].connection_status = ONLINE;
 		online_users.push_back(username);
 		users[username].socket_num = Nsocket;
-
+        update_time(username);
 	}
 
 	void get_offline(string username)// modify
@@ -166,6 +163,7 @@ public:
 		online_users.erase(remove(online_users.begin(), 
 			online_users.end(), username), online_users.end());
 		users[username].socket_num = -1;
+        update_time(username);
 	}
 
     string get_online_user(string selfname)
@@ -173,10 +171,28 @@ public:
         stringstream ss("");
         for (int i = 0; i < online_users.size() ; i ++)
         {
-            if (online_users[i] != selfname) {
+            if (online_users[i] != selfname)
+            {
                 ss<<online_users[i];
+                ss<<" ";
             }
-            
+        }
+        return ss.str();
+    }
+    
+    string get_offline_user(int duration)
+    {
+        time_t now;
+        time(&now);
+        stringstream ss;
+        ss.str("");
+        for (map<string,Client_user>::iterator i = users.begin(); i != users.end(); i ++)
+        {
+            if (((i->second).connection_status == OFFLINE) && difftime(now,(i->second).last_active_time) < duration*60)
+            {
+                ss<<(i->first);
+                ss<<" ";
+            }
         }
         return ss.str();
     }
@@ -189,11 +205,8 @@ public:
         ss>>receiver;
         reply_content = get_content(cur_content);
         reply_content = sender+":"+reply_content;
-        
         return users[receiver].socket_num;
     }
-
-
 };
 
 

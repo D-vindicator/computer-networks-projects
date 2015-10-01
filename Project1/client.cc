@@ -40,8 +40,6 @@ void output_handler(int socket_client)
     char buffer[BUFFER_SIZE];
     while (1) {
         bzero(buffer,BUFFER_SIZE);
-        if (logout == 1)
-            return;
         read(socket_client,buffer, BUFFER_SIZE);
         if (logout == 1)
             return;
@@ -115,7 +113,6 @@ int main(int argc, char *argv[])
 	int cur_command = -1;
     cin.ignore();
     thread t1(output_handler,socket_client);
-    //threads.push_back(thread(output_handler,socket_client));
 	while(1)
 	{
 		string cur_content;
@@ -128,11 +125,6 @@ int main(int argc, char *argv[])
 		{
 			integrate_message(buffer, cur_command, cur_content);
 			write(socket_client,buffer,strlen(buffer));
-//            if (cur_command == WHOELSE or cur_command == WHOLAST) {
-//                bzero(buffer,BUFFER_SIZE);
-//                read(socket_client,buffer, BUFFER_SIZE);
-//                command_handler(buffer);
-//            }
 		}
 		else
 			{

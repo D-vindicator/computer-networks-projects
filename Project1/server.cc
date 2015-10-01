@@ -80,11 +80,23 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
 	if (cur_command == WHOELSE)
 	{
 		reply_content = (*users).get_online_user(selfname);
-		reply_command = CLIENT_DISP;
+		reply_command = CLIENT_LIST;
 		reply_socket = cur_socket;
         integrate_message(buffer,reply_command,reply_content);
         write(reply_socket,buffer,strlen(buffer));
 	}
+    else if (cur_command == WHOLAST)
+    {
+        int duration = 0;
+        stringstream ss;
+        ss.str(cur_content);
+        ss>>duration;
+        reply_command = CLIENT_LIST;
+        reply_content = (*users).get_online_user(selfname) + (*users).get_offline_user(duration);
+        integrate_message(buffer,reply_command,reply_content);
+        write(reply_socket,buffer,strlen(buffer));
+cout<<">>>>>"<<buffer<<endl;
+    }
 	else if (cur_command == MESSAGE_TO)
     {
         reply_command = CLIENT_DISP;
@@ -183,7 +195,7 @@ int main(int argc, char *argv[])
 		(struct sockaddr *) &server_addr, sizeof(server_addr)) < 0)
 	{ cout<<"bind error"<<endl; exit(1);}
 	cout<<"Server starts listening..."<<endl;
-	listen(socket_server,5);
+	listen(socket_server,5);//Initialization finished, start listening
 	while(1)
 	{
 		socklen_t client_addr_len = sizeof(client_addr);
