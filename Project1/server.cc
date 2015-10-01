@@ -70,7 +70,7 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 	return username;
 }
 
-int command_handler(string selfname, int cur_socket, char* buffer, user_map *users)
+void command_handler(string selfname, int cur_socket, char* buffer, user_map *users)
 {
 	int cur_command = get_command(buffer);
 	string cur_content = get_content(buffer);
@@ -82,21 +82,62 @@ int command_handler(string selfname, int cur_socket, char* buffer, user_map *use
 		reply_content = (*users).get_online_user(selfname);
 		reply_command = CLIENT_DISP;
 		reply_socket = cur_socket;
+        integrate_message(buffer,reply_command,reply_content);
+        write(reply_socket,buffer,strlen(buffer));
 	}
 	else if (cur_command == MESSAGE_TO)
     {
         reply_command = CLIENT_DISP;
         reply_socket = (*users).private_message_handler(selfname, cur_content, reply_content);
-        
+        integrate_message(buffer,reply_command,reply_content);
+        write(reply_socket,buffer,strlen(buffer));
     }
-    else
-        return -1;
-	if (reply_command != IGNORE)
-	{
-		integrate_message(buffer,reply_command,reply_content);
-		write(reply_socket,buffer,strlen(buffer));
-	}
-	return 0;
+    else if (cur_command == BROAD_MESSAGE)
+    {
+        reply_command = CLIENT_DISP;
+        reply_content = get_content(cur_content);
+        reply_content = selfname+":"+reply_content;
+        for (int i = 0; i < (*users).online_users.size(); i++)
+        {
+            reply_socket = (*users).users[(*users).online_users[i]].socket_num;
+            if ((*users).online_users[i] != selfname)
+            {
+                integrate_message(buffer, reply_command, reply_content);
+                write(reply_socket, buffer, strlen(buffer));
+            }
+        }
+    }
+    else if (cur_command == BROAD_USER)
+    {
+        reply_command = CLIENT_DISP;
+        cur_content = get_content(cur_content);
+        stringstream ss;
+        ss.str(cur_content);
+        string temp;
+        ss>>temp;
+        vector<string> receivers;
+        while (temp != "message")
+        {
+            if (find((*users).online_users.begin(), (*users).online_users.end(), temp) != (*users).online_users.end())
+            {
+                receivers.push_back(temp);
+            }
+            ss >> temp;
+        }
+        getline(ss, reply_content);
+        reply_content = reply_content.substr(1,reply_content.length());
+        reply_content = selfname + ":" + reply_content;
+        for (int i = 0; i < receivers.size(); i ++) {
+            integrate_message(buffer, CLIENT_DISP,reply_content);
+            write((*users).users[receivers[i]].socket_num, buffer, strlen(buffer));
+        }
+    }
+    else if (cur_command == WHOLAST)
+    {
+        // implement wholast here
+        integrate_message(buffer,reply_command,reply_content);
+        write(reply_socket,buffer,strlen(buffer));
+    }
 }
 
 void client_handler(user_map *users, int new_socket)

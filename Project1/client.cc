@@ -1,6 +1,8 @@
 #include "./util.h"
 
-vector<thread> threads;
+
+mutex cout_l;
+int logout = 0;
 
 int command_parser(string &content)
 {
@@ -19,7 +21,7 @@ int command_parser(string &content)
 		result = WHOLAST;
 	else if(firstword == "message")
 		result = MESSAGE_TO;
-	else if(firstword == "broadcase")
+	else if(firstword == "broadcast")
 	{
 		ss>>temp_str;
 		if (temp_str == "message")
@@ -38,19 +40,26 @@ void output_handler(int socket_client)
     char buffer[BUFFER_SIZE];
     while (1) {
         bzero(buffer,BUFFER_SIZE);
+        if (logout == 1)
+            return;
         read(socket_client,buffer, BUFFER_SIZE);
+        if (logout == 1)
+            return;
         int cur_command = get_command(buffer);
         string cur_content = get_content(buffer);
         if (cur_command == CLIENT_LIST)
         {
+            cout_l.lock();
             cout<<endl;
             list_display(cur_content);
-            cout<<">>>";
+            cout_l.unlock();
         }
         else if (cur_command == CLIENT_DISP)
         {
+            cout_l.lock();
             cout<<endl;
-            cout<< cur_content<<endl<<">>>";
+            cout<< cur_content<<endl;
+            cout_l.unlock();
         }
         else if (cur_command == LOGOUT)
             return;
@@ -86,7 +95,7 @@ int main(int argc, char *argv[])
 	}
 	do{
 		if(get_command(buffer) == LOGIN_DENIED)
-			cout<<"Wrong username or password"<<endl;
+			cout<<"Wrong username/password or already-log-in user"<<endl;
 		cout<<"Input your username and password"<<endl;
 		ss.str("");
 		cout<<"Username: ";
@@ -103,13 +112,16 @@ int main(int argc, char *argv[])
 	} while(get_command(buffer) == LOGIN_DENIED);
 	cout<<"Welcome to Simiple Chat!"<<endl;
 	cout<<"Input your command to start!"<<endl;
-    threads.push_back(thread(output_handler,socket_client));
 	int cur_command = -1;
     cin.ignore();
+    thread t1(output_handler,socket_client);
+    //threads.push_back(thread(output_handler,socket_client));
 	while(1)
 	{
 		string cur_content;
+        cout_l.lock();
         cout<<">>>";
+        cout_l.unlock();
         getline(cin, cur_content);
 		cur_command = command_parser(cur_content);
 		if (cur_command >= 0 &&cur_command != LOGOUT)
@@ -124,6 +136,7 @@ int main(int argc, char *argv[])
 		}
 		else
 			{
+                logout = 1;
 				integrate_message(buffer, LOGOUT);
 				write(socket_client,buffer,strlen(buffer));
 				cout<<"client logged out"<<endl;
@@ -131,7 +144,7 @@ int main(int argc, char *argv[])
 			}
 	}
     
-    threads[1].join();
+    t1.join();
 	close(socket_client);
 	freeaddrinfo(serverinfo);
 	return 0;

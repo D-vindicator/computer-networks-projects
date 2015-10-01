@@ -148,8 +148,8 @@ public:
 
 	bool correct_password(string username, string pwd_to_check)
 	{
-		return ( if_user_exists(username) != 0 && 
-			users[username].password == pwd_to_check );
+		return (users[username].connection_status == OFFLINE && if_user_exists(username) != 0 &&
+			users[username].password == pwd_to_check);
 	}
 
 	void get_online(string username,int Nsocket)//modify
@@ -187,12 +187,7 @@ public:
         ss.str(cur_content);
         string receiver;
         ss>>receiver;
-
-        //reply_content = get_except_first_word(cur_content);
         reply_content = get_content(cur_content);
-        getline(ss, reply_content);
-        reply_content = reply_content.substr(1,reply_content.length());
-        cout<<reply_content<<endl;
         reply_content = sender+":"+reply_content;
         
         return users[receiver].socket_num;
