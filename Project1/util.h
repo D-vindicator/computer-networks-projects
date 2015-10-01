@@ -27,7 +27,9 @@ typedef unordered_map <string,string> string_map;
 
 static int BUFFER_SIZE = 1024;
 static int CONSECUTIVE_FAILURES = 3;
-static int BLOCK_TIME = 60;
+static int BLOCK_TIME = 60;//second
+static int TIME_OUT = 2;//minute
+
 enum command {IGNORE , REQUEST_CONNECT, REQUEST_USERINFO, USERINFO,
 AUTHENTICATED, LOGIN_DENIED, LOGIN_BLOCKED, CLIENT_DISP, CLIENT_LIST
 
@@ -144,7 +146,7 @@ public:
 			users[username].password == pwd_to_check);
 	}
     
-    void update_time(string username)
+    void update_time(string username) //modify
     {
         time(&(users[username].last_active_time));
     }

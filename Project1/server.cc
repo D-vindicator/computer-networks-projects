@@ -70,9 +70,17 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 	return username;
 }
 
+void auto_logout(user_map *users)
+{
+    
+}
+
 void command_handler(string selfname, int cur_socket, char* buffer, user_map *users)
 {
-	int cur_command = get_command(buffer);
+    user_map_lock.lock();
+    (*users).update_time(selfname);
+    user_map_lock.unlock();
+    int cur_command = get_command(buffer);
 	string cur_content = get_content(buffer);
 	int reply_command = IGNORE;
 	string reply_content;
@@ -144,12 +152,8 @@ cout<<">>>>>"<<buffer<<endl;
             write((*users).users[receivers[i]].socket_num, buffer, strlen(buffer));
         }
     }
-    else if (cur_command == WHOLAST)
-    {
-        // implement wholast here
-        integrate_message(buffer,reply_command,reply_content);
-        write(reply_socket,buffer,strlen(buffer));
-    }
+    else
+        cout<<"Undefined command"<<endl;
 }
 
 void client_handler(user_map *users, int new_socket)
@@ -170,6 +174,11 @@ void client_handler(user_map *users, int new_socket)
 			bzero(buffer,BUFFER_SIZE);
 			read(new_socket, buffer, BUFFER_SIZE);
 			cur_command = get_command(buffer);
+            time_t now;
+            time(&now);
+cout<<difftime(now, (*users).users[username].last_active_time)<<endl;
+            if (difftime(now, (*users).users[username].last_active_time) > TIME_OUT * 60)
+                break;
 			command_handler(username, new_socket, buffer, users);
 		}while(cur_command != LOGOUT);
 		user_map_lock.lock();
