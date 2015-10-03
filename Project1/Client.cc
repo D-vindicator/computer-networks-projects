@@ -29,6 +29,10 @@ int command_parser(string &content)
 		else if(temp_str == "user")
 			result = BROAD_USER;
 	}
+    else if(firstword == "block")
+        result = BLACK_ADD;
+    else if(firstword == "unblock")
+        result = BLACK_REMOVE;
 	else
     {
 		cout<<"undefined command"<<endl;

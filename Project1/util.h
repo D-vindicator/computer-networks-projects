@@ -35,6 +35,7 @@ enum command {IGNORE , REQUEST_CONNECT, REQUEST_USERINFO, USERINFO,
 AUTHENTICATED, LOGIN_DENIED, LOGIN_BLOCKED, CLIENT_DISP, CLIENT_LIST
 
 ,LOGOUT, WHOELSE, BROAD_MESSAGE, BROAD_USER, WHOLAST, MESSAGE_TO,
+BLACK_ADD, BLACK_REMOVE,
 
 ONLINE, OFFLINE, BLOCKED, NORMAL};
 
@@ -134,6 +135,16 @@ class Client_user
     bool in_blacklist(string name)
     {
         return find(blacklist.begin(), blacklist.end(),name ) != blacklist.end();
+    }
+    
+    void black_enlist(string name) //modify
+    {
+        blacklist.push_back(name);
+    }
+    
+    void black_unenlist(string name)
+    {
+        blacklist.erase(remove(blacklist.begin(), blacklist.end(), name),blacklist.end());
     }
 };
 

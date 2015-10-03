@@ -169,8 +169,19 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
             }
         }
     }
-    else
-        cout<<"Undefined command"<<endl;
+    else if (cur_command == BLACK_ADD)
+    {
+        user_map_lock.lock();
+        (*users).users[selfname].black_enlist(cur_content);
+        user_map_lock.unlock();
+    }
+    else if (cur_command == BLACK_REMOVE)
+    {
+        user_map_lock.lock();
+        (*users).users[selfname].black_unenlist(cur_content);
+        user_map_lock.unlock();
+    }
+    
 }
 
 void client_handler(user_map *users, int new_socket)
