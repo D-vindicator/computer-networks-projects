@@ -67,9 +67,30 @@ void output_handler(int socket_client)
     }
 }
 
-void logout_handler(int socket_num)
+void login_handler(char *buffer, int socket_client)
 {
-    logout = 1;
+    stringstream ss;
+    do{
+        if(get_command(buffer) == LOGIN_DENIED)
+            cout<<"Wrong username/password or already-log-in user"<<endl;
+        cout<<"Input your username and password"<<endl;
+        ss.str("");
+        cout<<"Username: ";
+        cin >> ss;
+        ss<<" ";
+        cout<<"Password: ";
+        cin >> ss;
+        integrate_message(buffer, USERINFO, ss.str());
+        write(socket_client,buffer,strlen(buffer));
+        bzero(buffer,BUFFER_SIZE);
+        read(socket_client,buffer, BUFFER_SIZE);
+        if (get_command(buffer) == LOGIN_BLOCKED)
+        {cout<<"login is blocked for some time, please login later"<<endl; exit(1);}
+    } while(get_command(buffer) == LOGIN_DENIED);
+    cout<<"Welcome to Simiple Chat!"<<endl;
+    cout<<"Input your command to start!"<<endl;
+    
+    return;
 }
 
 int main(int argc, char *argv[])
@@ -78,7 +99,6 @@ int main(int argc, char *argv[])
 	struct sockaddr server_addr;
 	struct addrinfo *serverinfo;
 	char buffer[BUFFER_SIZE];
-    stringstream ss;
 	if (argc < 3)
 	{ cout<<"inadequate input"<<endl; exit(1);}
 	if ((socket_client = socket(AF_INET,SOCK_STREAM,0)) < 0)
@@ -93,38 +113,15 @@ int main(int argc, char *argv[])
 	cout<<"REQUEST_CONNECT sent"<<endl;
 	bzero(buffer,BUFFER_SIZE);
 	read(socket_client, buffer, BUFFER_SIZE);
-	//some timeout function should be here later
 	if (get_command(buffer) != REQUEST_USERINFO)
 	{
 		cout<<"Unexpected server bahavior."<<endl;
 		exit(1);
 	}
-    struct sigaction act;
-    act.sa_handler = logout_handler;
-    sigaction(SIGINT, &act, NULL);
-    //signal(SIGINT, logout_handler(socket_client));
-	do{
-		if(get_command(buffer) == LOGIN_DENIED)
-			cout<<"Wrong username/password or already-log-in user"<<endl;
-		cout<<"Input your username and password"<<endl;
-		ss.str("");
-		cout<<"Username: ";
-		cin >> ss;
-		ss<<" ";
-		cout<<"Password: ";
-		cin >> ss;
-		integrate_message(buffer, USERINFO, ss.str());
-		write(socket_client,buffer,strlen(buffer));
-		bzero(buffer,BUFFER_SIZE);
-		read(socket_client,buffer, BUFFER_SIZE);
-		if (get_command(buffer) == LOGIN_BLOCKED)
-		{cout<<"login is blocked for some time, please login later"<<endl; exit(1);}
-	} while(get_command(buffer) == LOGIN_DENIED);
-	cout<<"Welcome to Simiple Chat!"<<endl;
-	cout<<"Input your command to start!"<<endl;
-	int cur_command = -1;
-    cin.ignore();
+    login_handler(buffer, socket_client);
     thread t1(output_handler,socket_client);
+    int cur_command = -1;
+    cin.ignore();
 	while(logout != 1)
 	{
 		string cur_content;

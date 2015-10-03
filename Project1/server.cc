@@ -83,8 +83,6 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 	return username;
 }
 
-
-
 void command_handler(string selfname, int cur_socket, char* buffer, user_map *users)
 {
     user_map_lock.lock();
@@ -114,7 +112,6 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
         reply_content = (*users).get_online_user(selfname) + (*users).get_offline_user(duration);
         integrate_message(buffer,reply_command,reply_content);
         write(reply_socket,buffer,strlen(buffer));
-cout<<">>>>>"<<buffer<<endl;
     }
 	else if (cur_command == MESSAGE_TO)
     {
@@ -186,6 +183,7 @@ void client_handler(user_map *users, int new_socket)
             return;
         }
 		int cur_command;
+        (*users).offline_message_handler(username);
 		do{
 			bzero(buffer,BUFFER_SIZE);
 			read(new_socket, buffer, BUFFER_SIZE);
@@ -207,6 +205,7 @@ int main(int argc, char *argv[])
 {
 	user_pass_handler(users);
 	int socket_server;
+    signal(SIGPIPE, SIG_IGN);
 	if(argc < 2)
 	{ cout<<"inadequate input"<<endl;exit(1);}
 	if ((socket_server = socket(AF_INET,SOCK_STREAM,0)) < 0)

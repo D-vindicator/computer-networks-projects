@@ -1,24 +1,24 @@
 # MACROS
-CXX = g++-4.6
-CXXFLAGS = -O3 -Wall -std=c++0x
+CXX = g++
+CXXFLAGS = -O3 -Wall -std=c++11
 LIBS = -pthread
-OBJS = server.o client.o
-EXES = server client
+OBJS = Server.o Client.o
+EXES = Server Client
 
 # TARGETS
 all: $(EXES)
 
-server: server.o
-	$(CXX) -o server server.o $(CXXFLAGS) $(LIBS)
+Server: Server.o
+	$(CXX) -o Server Server.o $(CXXFLAGS) $(LIBS)
 
-server.o: server.cc util.h
-	$(CXX) -o server.o -c server.cc $(CXXFLAGS) $(LIBS)
+Server.o: Server.cc util.h
+	$(CXX) -o Server.o -c Server.cc $(CXXFLAGS) $(LIBS)
 
-client: client.o
-	$(CXX) -o client client.o $(CXXFLAGS) $(LIBS)
+Client: Client.o
+	$(CXX) -o Client Client.o $(CXXFLAGS) $(LIBS)
 
-client.o: client.cc util.h
-	$(CXX) -o client.o -c client.cc $(CXXFLAGS) $(LIBS)
+Client.o: Client.cc util.h
+	$(CXX) -o Client.o -c Client.cc $(CXXFLAGS) $(LIBS)
 
 # REMOVAL
 clean:

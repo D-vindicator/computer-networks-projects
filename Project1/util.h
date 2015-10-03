@@ -52,7 +52,6 @@ void list_display(string content)
 		else
 			cout<<content[i];
 	}
-
 }
 
 void integrate_message(char* buffer, int cmd)
@@ -97,7 +96,6 @@ string get_content(char* buffer)
 	string content_str;
 	string buffer_str = buffer;
     content_str = buffer_str.substr(buffer_str.find_first_of(' ')+1,buffer_str.length());
-
 	return content_str;
 }
 
@@ -119,10 +117,10 @@ class Client_user
     int block_status;
     time_t blocked_time;
     struct sockaddr block_address;
-    
     time_t last_active_time;
 	string username;
 	string password;
+    vector<string> offline_message;
 
     Client_user(){
         socket_num = -1;
@@ -148,7 +146,6 @@ public:
 		return users.count(username);
 	}
 
-
 	int correct_password(string username, string pwd_to_check)
 	{
         if (users[username].connection_status == ONLINE) {
@@ -158,7 +155,6 @@ public:
 			users[username].password == pwd_to_check);
         
 	}
-    
     
     void update_time(string username) //modify
     {
@@ -238,7 +234,25 @@ public:
         ss>>receiver;
         reply_content = get_content(cur_content);
         reply_content = sender+":"+reply_content;
+        if (users[receiver].socket_num == -1) {
+            users[receiver].offline_message.push_back(reply_content);
+        }
         return users[receiver].socket_num;
+    }
+    
+    void offline_message_handler(string username)
+    {
+        if (! users[username].offline_message.empty())
+        {
+            char buffer[BUFFER_SIZE];
+            string temp;
+            while (! users[username].offline_message.empty()) {
+                temp = temp + " "+ users[username].offline_message.back();
+            }
+            integrate_message(buffer, CLIENT_DISP);
+            write(users[username].socket_num, buffer, strlen(buffer));
+            cout<<">>>>>>>"<<buffer<<endl;
+        }
     }
 };
 
