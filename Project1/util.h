@@ -35,7 +35,7 @@ AUTHENTICATED, LOGIN_DENIED, LOGIN_BLOCKED, CLIENT_DISP, CLIENT_LIST
 
 ,LOGOUT, WHOELSE, BROAD_MESSAGE, BROAD_USER, WHOLAST, MESSAGE_TO,
 
-,ONLINE, OFFLINE, BLOCKED, NORMAL};
+ONLINE, OFFLINE, BLOCKED, NORMAL};
 
 istream& operator >> (istream& in, stringstream& ss)
 {
@@ -112,16 +112,22 @@ string get_content(string content)
 
 class Client_user
 {
-public:
-	int socket_num = -1;
-	int connection_status = OFFLINE;
-    int block_status = NORMAL;
+	public:
+    int socket_num;
+	int connection_status;
+    int block_status;
     time_t blocked_time;
     struct sockaddr block_address;
     
     time_t last_active_time;
 	string username;
 	string password;
+
+    Client_user(){
+        socket_num = -1;
+        connection_status = OFFLINE;
+        block_status = NORMAL;
+    }
 };
 
 class user_map
