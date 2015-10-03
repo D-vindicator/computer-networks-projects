@@ -2,7 +2,7 @@
 
 
 mutex cout_l;
-int logout = 0;
+volatile int logout = 0;
 
 int command_parser(string &content)
 {
@@ -69,7 +69,7 @@ void output_handler(int socket_client)
 
 void logout_handler(int socket_num)
 {
-    cout<<"SIGINT"<<endl;
+    logout = 1;
 }
 
 int main(int argc, char *argv[])
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 	int cur_command = -1;
     cin.ignore();
     thread t1(output_handler,socket_client);
-	while(1)
+	while(logout != 1)
 	{
 		string cur_content;
         cout_l.lock();
@@ -141,12 +141,11 @@ int main(int argc, char *argv[])
 		else
 			{
                 logout = 1;
-				integrate_message(buffer, LOGOUT);
-				write(socket_client,buffer,strlen(buffer));
-				cout<<"client logged out"<<endl;
-				break;
 			}
 	}
+    integrate_message(buffer, LOGOUT);
+    write(socket_client,buffer,strlen(buffer));
+    cout<<"client logged out"<<endl;
     
     t1.join();
 	close(socket_client);
