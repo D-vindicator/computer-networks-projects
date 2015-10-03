@@ -246,14 +246,15 @@ public:
     {
         if (! users[username].offline_message.empty())
         {
+            string temp = "Offline message >>>";
             char buffer[BUFFER_SIZE];
-            string temp;
             while (! users[username].offline_message.empty()) {
                 temp = temp + " "+ users[username].offline_message.back();
+                users[username].offline_message.pop_back();
             }
-            integrate_message(buffer, CLIENT_DISP);
+            integrate_message(buffer, CLIENT_DISP, temp);
             write(users[username].socket_num, buffer, strlen(buffer));
-            cout<<">>>>>>>"<<buffer<<endl;
+            
         }
     }
 };

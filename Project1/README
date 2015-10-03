@@ -14,3 +14,96 @@ RSA encryption of username and password
 
 
 Make sure the makefile!!!!!!!!
+
+
+
+
+README.txt
+
+1. Brief description.
+
+These are the code of Programming Assignment 1.
+Client.cc is the source file of client. 
+Server.cc is the source file of server. Both of them include the header file util.h, which provides utility functions and classes.
+
+The Makefile is modified in order to gcc 4.6.3 to compile. If compiling with higher version of gcc, it requires changes to the Makefile.
+
+2. Development environment.
+
+Programming Language: c++11
+OS: OS X version 10.11 
+Compiler: clang+LLVM 7.0.0 (-std=c++11)
+Compatible with (according to the CLIC machine):
+OS: Ubuntu 14.04LTS
+Compiler: GNU GCC 4.6.4 (-std=c++0x)
+
+
+If you are using GCC version higher than 4.7, you should change the (-std=c++0x) to (-std=c++11) in Makefile. Thank you!
+
+3. Instructions to Run
+
+Use $make to compile all the source files.
+
+If you want to clean the compiled output, 
+use $make clean
+
+Use $./Server <port number>
+to run the server.
+
+Use $./Client <server_ip> <server_port>
+to run the client.
+
+Use preset username and password to login.
+After login you can type in your command after
+>>>
+(sometimes the >>> may disapear, but it will not influence your inputing)
+
+Use
+>>>logout
+to logout. (Please do not use Ctrl + C, or it will crash the server. Sorry for not implementing the graceful exit in such way)
+
+4. Sample Commands.
+
+>>>whoelse
+Display the names of online users.
+
+>>>wholast 5
+Display the names of previous online users within 5 minutes.
+
+>>>broadcast message Hello
+Braodcast "Hello" to everyone.
+
+>>>broadcast user columbia foobar message Hello folks
+Broadcast "Hello folks" to comlumbia and foobar
+
+>>>message columbia how are you
+Message columbia with "how are you"
+
+5. additional functionalities
+
+a. Offline private message
+ When user sends private message, if the receiver is offline, the message will be stored and show to the receiver upon receiver logging in. 
+
+It is the same to send such offline message as the normal privagte message.
+>>>message columbia call me back
+
+To test such function, you can login and send message to another offiline user and login the receiver later to see the offlien messages.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
