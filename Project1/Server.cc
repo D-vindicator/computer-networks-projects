@@ -116,9 +116,14 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
 	else if (cur_command == MESSAGE_TO)
     {
         reply_command = CLIENT_DISP;
+        user_map_lock.lock();
         reply_socket = (*users).private_message_handler(selfname, cur_content, reply_content);
-        integrate_message(buffer,reply_command,reply_content);
-        write(reply_socket,buffer,strlen(buffer));
+        user_map_lock.unlock();
+        if (reply_socket >= 0) {
+            integrate_message(buffer,reply_command,reply_content);
+            write(reply_socket,buffer,strlen(buffer));
+        }
+
     }
     else if (cur_command == BROAD_MESSAGE)
     {
@@ -128,7 +133,8 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
         for (int i = 0; i < (*users).online_users.size(); i++)
         {
             reply_socket = (*users).users[(*users).online_users[i]].socket_num;
-            if ((*users).online_users[i] != selfname)
+            string it_name = (*users).online_users[i];
+            if (it_name != selfname && !(*users).users[it_name].in_blacklist(selfname))
             {
                 integrate_message(buffer, reply_command, reply_content);
                 write(reply_socket, buffer, strlen(buffer));
@@ -156,8 +162,11 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
         reply_content = reply_content.substr(1,reply_content.length());
         reply_content = selfname + ":" + reply_content;
         for (int i = 0; i < receivers.size(); i ++) {
-            integrate_message(buffer, CLIENT_DISP,reply_content);
-            write((*users).users[receivers[i]].socket_num, buffer, strlen(buffer));
+            if (!(*users).users[receivers[i]].in_blacklist(selfname))
+            {
+                integrate_message(buffer, CLIENT_DISP,reply_content);
+                write((*users).users[receivers[i]].socket_num, buffer, strlen(buffer));
+            }
         }
     }
     else
@@ -183,7 +192,9 @@ void client_handler(user_map *users, int new_socket)
             return;
         }
 		int cur_command;
+        user_map_lock.lock();
         (*users).offline_message_handler(username);
+        user_map_lock.unlock();
 		do{
 			bzero(buffer,BUFFER_SIZE);
 			read(new_socket, buffer, BUFFER_SIZE);

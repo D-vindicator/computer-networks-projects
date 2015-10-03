@@ -121,6 +121,7 @@ class Client_user
 	string username;
 	string password;
     vector<string> offline_message;
+    vector<string> blacklist;
 
     Client_user(){
         socket_num = -1;
@@ -128,6 +129,11 @@ class Client_user
         block_status = NORMAL;
         blocked_time = 0;
         last_active_time = 0;
+    }
+    
+    bool in_blacklist(string name)
+    {
+        return find(blacklist.begin(), blacklist.end(),name ) != blacklist.end();
     }
 };
 
@@ -228,21 +234,25 @@ public:
         return ss.str();
     }
     
-    int private_message_handler(string sender, string cur_content, string &reply_content)
+    int private_message_handler(string sender, string cur_content, string &reply_content) //modify
     {
         stringstream ss;
         ss.str(cur_content);
         string receiver;
         ss>>receiver;
-        reply_content = get_content(cur_content);
-        reply_content = sender+":"+reply_content;
-        if (users[receiver].socket_num == -1) {
-            users[receiver].offline_message.push_back(reply_content);
+        if (!users[receiver].in_blacklist(sender))
+        {
+            reply_content = get_content(cur_content);
+            reply_content = sender+":"+reply_content;
+            if (users[receiver].socket_num == -1) {
+                users[receiver].offline_message.push_back(reply_content);
+            }
+            return users[receiver].socket_num;
         }
-        return users[receiver].socket_num;
+        return -2;
     }
     
-    void offline_message_handler(string username)
+    void offline_message_handler(string username) //modify
     {
         if (! users[username].offline_message.empty())
         {
