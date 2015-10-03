@@ -126,6 +126,8 @@ class Client_user
         socket_num = -1;
         connection_status = OFFLINE;
         block_status = NORMAL;
+        blocked_time = 0;
+        last_active_time = 0;
     }
 };
 
