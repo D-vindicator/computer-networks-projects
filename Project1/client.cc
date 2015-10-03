@@ -30,8 +30,11 @@ int command_parser(string &content)
 			result = BROAD_USER;
 	}
 	else
+    {
 		cout<<"undefined command"<<endl;
-    content = get_content(content);
+        result = -1;
+    }
+        content = get_content(content);
 	return result;
 }
 
@@ -106,7 +109,7 @@ int main(int argc, char *argv[])
 		bzero(buffer,BUFFER_SIZE);
 		read(socket_client,buffer, BUFFER_SIZE);
 		if (get_command(buffer) == LOGIN_BLOCKED)
-		{cout<<"login is blocked for some time, please restart the client"<<endl; exit(1);}
+		{cout<<"login is blocked for some time, please login later"<<endl; exit(1);}
 	} while(get_command(buffer) == LOGIN_DENIED);
 	cout<<"Welcome to Simiple Chat!"<<endl;
 	cout<<"Input your command to start!"<<endl;

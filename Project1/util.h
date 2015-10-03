@@ -33,9 +33,9 @@ static int TIME_OUT = 2;//minute
 enum command {IGNORE , REQUEST_CONNECT, REQUEST_USERINFO, USERINFO,
 AUTHENTICATED, LOGIN_DENIED, LOGIN_BLOCKED, CLIENT_DISP, CLIENT_LIST
 
-,LOGOUT, WHOELSE, BROAD_MESSAGE, BROAD_USER, WHOLAST, MESSAGE_TO
+,LOGOUT, WHOELSE, BROAD_MESSAGE, BROAD_USER, WHOLAST, MESSAGE_TO,
 
-,ONLINE, OFFLINE};
+,ONLINE, OFFLINE, BLOCKED, NORMAL};
 
 istream& operator >> (istream& in, stringstream& ss)
 {
@@ -115,11 +115,13 @@ class Client_user
 public:
 	int socket_num = -1;
 	int connection_status = OFFLINE;
+    int block_status = NORMAL;
+    time_t blocked_time;
+    struct sockaddr block_address;
+    
     time_t last_active_time;
 	string username;
 	string password;
-
-	//last_active_time
 };
 
 class user_map
@@ -140,17 +142,39 @@ public:
 	}
 
 
-	bool correct_password(string username, string pwd_to_check)
+	int correct_password(string username, string pwd_to_check)
 	{
-		return (users[username].connection_status == OFFLINE && if_user_exists(username) != 0 &&
+        if (users[username].connection_status == ONLINE) {
+            return 2;
+        }
+        return (users[username].connection_status == OFFLINE && if_user_exists(username) != 0 &&
 			users[username].password == pwd_to_check);
+        
 	}
+    
     
     void update_time(string username) //modify
     {
         time(&(users[username].last_active_time));
     }
 
+    void block_user(string username) //modify
+    {
+        users[username].block_status = BLOCKED;
+        time(&users[username].blocked_time);
+    }
+    
+    int if_blocked(string username)
+    {
+        time_t now;
+        time(&now);
+        if (users[username].block_status == BLOCKED && difftime(now,users[username].blocked_time) < BLOCK_TIME) {
+            return 1;
+        }
+        else
+            return 0;
+    }
+    
 	void get_online(string username,int Nsocket)//modify
 	{
 		users[username].connection_status = ONLINE;

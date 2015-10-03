@@ -38,6 +38,11 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 		string pwd;
 		ss>>username>>pwd;
 		int login_count= 1;
+        if ((*users).if_blocked(username)) {
+            integrate_message(buffer, LOGIN_BLOCKED);
+            write(new_socket, buffer, strlen(buffer));
+            return "";
+        }
 		while(!(*users).correct_password(username,pwd) and
 			 login_count < CONSECUTIVE_FAILURES)
 		{
@@ -50,7 +55,11 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 			stringstream ss(get_content(buffer));
 			ss>>username>>pwd;
 		}
-
+        if ((*users).correct_password(username,pwd) == 2) {
+            integrate_message(buffer, LOGIN_BLOCKED);
+            write(new_socket, buffer, 1);
+            return "";
+        }
 		if ((*users).correct_password(username,pwd))
 		{
 			user_map_lock.lock();
@@ -64,16 +73,17 @@ string login_handler(char* buffer, user_map *users, int new_socket)
 		{
 			integrate_message(buffer,LOGIN_BLOCKED);
 			cout<<"LOGIN_BLOCKED"<<endl;
+            user_map_lock.lock();
+            (*users).block_user(username);
+            user_map_lock.unlock();
 			write(new_socket,buffer,1);
+            username = "";
 		}
 	}
 	return username;
 }
 
-void auto_logout(user_map *users)
-{
-    
-}
+
 
 void command_handler(string selfname, int cur_socket, char* buffer, user_map *users)
 {
@@ -84,7 +94,7 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
 	string cur_content = get_content(buffer);
 	int reply_command = IGNORE;
 	string reply_content;
-	int reply_socket;
+	int reply_socket = -1;
 	if (cur_command == WHOELSE)
 	{
 		reply_content = (*users).get_online_user(selfname);
@@ -169,6 +179,11 @@ void client_handler(user_map *users, int new_socket)
 		write(new_socket, buffer, 1);
 		cout<<"REQUEST_USERINFO sent."<<endl;
 		string username = login_handler(buffer,users,new_socket);
+        if (username == "")
+        {
+            close(new_socket);
+            return;
+        }
 		int cur_command;
 		do{
 			bzero(buffer,BUFFER_SIZE);
@@ -176,7 +191,6 @@ void client_handler(user_map *users, int new_socket)
 			cur_command = get_command(buffer);
             time_t now;
             time(&now);
-cout<<difftime(now, (*users).users[username].last_active_time)<<endl;
             if (difftime(now, (*users).users[username].last_active_time) > TIME_OUT * 60)
                 break;
 			command_handler(username, new_socket, buffer, users);
