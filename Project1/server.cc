@@ -109,6 +109,7 @@ void command_handler(string selfname, int cur_socket, char* buffer, user_map *us
         stringstream ss;
         ss.str(cur_content);
         ss>>duration;
+        reply_socket = cur_socket;
         reply_command = CLIENT_LIST;
         reply_content = (*users).get_online_user(selfname) + (*users).get_offline_user(duration);
         integrate_message(buffer,reply_command,reply_content);

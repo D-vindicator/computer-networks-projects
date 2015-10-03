@@ -67,6 +67,11 @@ void output_handler(int socket_client)
     }
 }
 
+void logout_handler(int socket_num)
+{
+    cout<<"SIGINT"<<endl;
+}
+
 int main(int argc, char *argv[])
 {
 	int socket_client;
@@ -94,6 +99,10 @@ int main(int argc, char *argv[])
 		cout<<"Unexpected server bahavior."<<endl;
 		exit(1);
 	}
+    struct sigaction act;
+    act.sa_handler = logout_handler;
+    sigaction(SIGINT, &act, NULL);
+    //signal(SIGINT, logout_handler(socket_client));
 	do{
 		if(get_command(buffer) == LOGIN_DENIED)
 			cout<<"Wrong username/password or already-log-in user"<<endl;

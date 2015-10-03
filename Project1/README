@@ -4,6 +4,14 @@ README
 
 Not implemented:
 
-BLOCK_IP
+linux test
 
 Ctrl+C server shut down
+BLOCK_IP
+unknown command response
+
+Bonus:
+RSA encryption of username and password
+
+
+Make sure the makefile!!!!!!!!
