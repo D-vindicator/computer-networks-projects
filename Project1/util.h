@@ -267,6 +267,7 @@ public:
     {
         if (! users[username].offline_message.empty())
         {
+//cout<<">>>>>>>>>>>"<<endl;
             string temp = "Offline message >>>";
             char buffer[BUFFER_SIZE];
             while (! users[username].offline_message.empty()) {
@@ -275,7 +276,6 @@ public:
             }
             integrate_message(buffer, CLIENT_DISP, temp);
             write(users[username].socket_num, buffer, strlen(buffer));
-            
         }
     }
 };
