@@ -1,18 +1,3 @@
-README
-
-
-
-Not implemented:
-
-
-Ctrl+C server shut down
-BLOCK_IP
-unknown command response
-
-Bonus:
-RSA encryption of username and password
-
-
 Make sure the makefile!!!!!!!!
 
 
@@ -89,7 +74,19 @@ It is the same to send such offline message as the normal privagte message.
 
 To test such function, you can login and send message to another offiline user and login the receiver later to see the offlien messages.
 
+b. Blacklist
+ If a user does not want to receive information from a specific user, he can enlist the user on the blacklist. He can also remove the user from the black list, namely, unblock the user.
+ When a user is under your blacklist, he cannot send you private message as well as broad cast message.
 
+ To enlist a user into blacklist
+ >>>block columbia
+ (block <username>)
+
+ To unenlist a user from blacklist
+ >>>unblock columbia
+ (unblock <username>)
+
+To test such function, you can let two users message/broadcast each other and enlist/unenlist other users.
 
 
 
