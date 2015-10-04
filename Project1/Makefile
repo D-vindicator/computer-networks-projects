@@ -1,6 +1,6 @@
 # MACROS
 CXX = g++
-CXXFLAGS = -O3 -Wall -std=c++11
+CXXFLAGS = -O3 -Wall -std=c++0x
 LIBS = -pthread
 OBJS = Server.o Client.o
 EXES = Server Client
