@@ -91,7 +91,7 @@ void login_handler(char *buffer, int socket_client)
         if (get_command(buffer) == LOGIN_BLOCKED)
         {cout<<"login is blocked for some time, please login later"<<endl; exit(1);}
     } while(get_command(buffer) == LOGIN_DENIED);
-    cout<<"Welcome to Simiple Chat!"<<endl;
+    cout<<"Welcome to Simple Chat!"<<endl;
     cout<<"Input your command to start!"<<endl;
     
     return;

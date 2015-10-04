@@ -203,6 +203,7 @@ void client_handler(user_map *users, int new_socket)
             return;
         }
 		int cur_command;
+        usleep(100);
         user_map_lock.lock();
         (*users).offline_message_handler(username);
         user_map_lock.unlock();
