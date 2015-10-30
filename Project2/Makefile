@@ -2,8 +2,8 @@
 CXX = g++
 CXXFLAGS = -O3 -Wall -std=c++11
 LIBS = 
-OBJS = sender.o receiver.o
-EXES = sender receiver
+OBJS = sender.o receiver.o test.o
+EXES = sender receiver test
 
 # TARGETS
 all: $(EXES)
@@ -19,6 +19,12 @@ receiver: receiver.o
 
 receiver.o: receiver.cc util.h
 	$(CXX) -o receiver.o -c receiver.cc $(CXXFLAGS) $(LIBS)
+
+test: test.o
+	$(CXX) -o test test.o $(CXXFLAGS) $(LIBS)
+
+test.o: test.cc util.h
+	$(CXX) -o test.o -c test.cc $(CXXFLAGS) $(LIBS)
 
 # REMOVAL
 clean:
