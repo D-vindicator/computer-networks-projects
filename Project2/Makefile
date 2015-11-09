@@ -1,7 +1,7 @@
 # MACROS
 CXX = g++
 CXXFLAGS = -O3 -Wall -std=c++11
-LIBS = 
+LIBS = -pthread
 OBJS = sender.o receiver.o test.o
 EXES = sender receiver test
 
