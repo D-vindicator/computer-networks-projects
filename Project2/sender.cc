@@ -8,27 +8,81 @@ int ack_seq;
 tcp_socket s_ack;
 int un_acked_count = 0;
 int ack_op = 1;
+int TIME_OUT = 500;
 
+struct packpair{
+    string content;
+    tcp_header header;
+    int expected_ack_seq;
+    packpair(string c, tcp_header h, int a) : content(c), header(h), expected_ack_seq(a){}
+};
+queue<packpair> unacked_sent;
+mutex queue_l;
 
-void ack_handler(vector<int> *acked_vec)
+void ack_handler()
 {
     while (ack_op) {
         ack_seq = s_ack.receive_ack();
-        ack_count_l.lock();
-        un_acked_count --;
-        acked_vec->push_back(ack_seq);
-        ack_count_l.unlock();
+//        cout<<"ack_seq:"<<ack_seq<<endl;
+//        cout<<"expected:"<<unacked_sent.front().expected_ack_seq<<endl;
+//        cout<<(ack_seq == unacked_sent.front().expected_ack_seq)<<endl;
+        if (ack_seq == unacked_sent.front().expected_ack_seq) {
+            queue_l.lock();
+            unacked_sent.pop();
+            queue_l.unlock();
+            
+            ack_count_l.lock();
+            un_acked_count --;
+            ack_count_l.unlock();
+        }
     }
 }
 
 int main(int argc, char *argv[])
 {
-	string filename = "data.txt";
-	string remote_ip = "127.0.0.1";
-	int remote_port = 20000;
-	int ack_port = 10001;
-	string log_file = "logfile.txt";
-	
+    if (argc != 7) {
+        //cout<<argv[7]<<endl;
+        cout<<"wrong input!"<<endl;
+        exit(1);
+    }
+    
+    
+    string filename = argv[1];
+	string remote_ip = argv[2];
+	int remote_port = atoi(argv[3]);
+	int ack_port = atoi(argv[4]);
+	string log_file = argv[5];
+    window_size = atoi(argv[6]);
+    
+
+    
+    thatip = remote_ip;
+    thatport = to_string(remote_port);
+    thisackport = to_string(ack_port);
+    
+    
+    
+    //std::streambuf * sbuf;
+    std::ofstream logstream;
+    
+    if(log_file != "stdout") {
+        logstream.open(log_file);
+        sbuf = logstream.rdbuf();
+    } else {
+        sbuf = std::cout.rdbuf();
+    }
+    
+    //std::ostream out(sbuf);
+    logout.rdbuf(sbuf);
+    
+    //logout<<timenow()<<endl;
+    
+
+    
+    
+    
+    
+    
     int udp_send_port = 10000;
 
     udp_socket s;
@@ -51,8 +105,8 @@ int main(int argc, char *argv[])
     s_header.d_port = 4119;
     
     
-    vector<int> acked_vec;
-    thread ack_t(ack_handler,&acked_vec);
+    thread ack_t(ack_handler);
+    ack_t.detach();
     
     while (un_acked_count < window_size) {
         int s_index = ifs.tellg();
@@ -66,21 +120,37 @@ int main(int argc, char *argv[])
         
         ack_count_l.lock();
         s.send_packet(s_header, temp_s);
+        
+        queue_l.lock();
+        unacked_sent.push(packpair(temp_s, s_header, s_header.seq_num + temp_s.length()));
+        queue_l.unlock();
+        
         un_acked_count++;
         ack_count_l.unlock();
-        
+        //cout<<"packet sent -- seq num:"<<s_header.seq_num<<endl;
         s_header.seq_num += temp_s.length();
-        cout<<"packet sent -- seq num:"<<s_header.seq_num<<endl;
+        
         
         
         //cout<<"segment sent"<<endl;
         int l = ifs.gcount();
         if (l != SEG_SIZE)
             break;
-        
-        while (un_acked_count == window_size) {
-            usleep(100);
+        int time_count = 0;
+        while (un_acked_count == window_size ) {
+            if (time_count++ < TIME_OUT) {
+                usleep(1);
+            }
+            else
+            {
+                queue<packpair> cp = unacked_sent;
+                while (!cp.empty()) {
+                    s.send_packet(cp.front().header, cp.front().content);
+                    cp.pop();
+                }
+            }
         }
+        
     }
     
     
@@ -91,9 +161,13 @@ int main(int argc, char *argv[])
     s.send_packet(fin_header, "");
     
 
+    
+    if (log_file != "stdout") {
+        logstream.close();
+    }
 	//s.send_packet("test");
     ack_op = 0;
-    ack_t.join();
+    //ack_t.join();
 	s.shut();
     s_tcp.shut();
     s_ack.shut();

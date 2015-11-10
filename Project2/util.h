@@ -4,6 +4,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <queue>
 #include <iomanip>
 #include <sstream>
 #include <fstream>
@@ -26,12 +27,29 @@ using namespace std;
 //const int BUFFF_SIZE = 32;
 const int SEG_SIZE = 128;
 const int HEADER_SIZE = 20;
+streambuf * sbuf;
+ostream logout(sbuf);
+mutex logout_l;
+string thisip = "unknown";
+string thatip = "unknown";
+string thisport = "rand_port";
+string thatport = "rand_port";
+string thisackport = "rand_port";
+string thatackport = "rand_port";
 
 struct tcp_header{
 	unsigned int s_port:16, d_port: 16, seq_num: 32,
 	ack_num:32, :11, ack:1, :3, fin:1, w_size:16, ck_sum:16,emp:16;
     tcp_header(){memset(this, 1, sizeof(*this)); ack = 0; fin = 0;}
     };
+
+
+string timenow()
+{
+    time_t now;
+    time(&now);
+    return ctime(&now);
+}
 
 class tcp_socket
 {
@@ -82,9 +100,27 @@ public:
     void send_ack(int seq_num)
     {
         tcp_header ack_header;
-        ack_header.seq_num = seq_num;
+        ack_header.ack_num = seq_num;
         ack_header.ack = 1;
-        cout<<"sent ACK:"<<ack_header.seq_num<<endl;
+        logout_l.lock();
+        logout
+        <<timenow()
+        <<"SEND ACK: "
+        <<thisip
+        <<"/"
+        <<thisackport
+        <<" "
+        <<thatip
+        <<"/"
+        <<thatackport
+        <<" "
+        <<to_string(ack_header.ack_num)
+        <<" "
+        <<"ACK"
+        <<endl;
+        logout_l.unlock();
+        
+        //logout<<"sent ACK:"<<ack_header.ack_num<<endl;
         if (!send(s, &ack_header, HEADER_SIZE, 0 ))
             cout<<"send error"<<endl;
     }
@@ -93,9 +129,28 @@ public:
     {
         tcp_header ack_header;
         if(recv(s, &ack_header, sizeof(ack_header), 0) == -1)
-            cout<<"receive error"<<endl;
-        cout<<"received ACK: "<<ack_header.seq_num<<endl;
-        return ack_header.seq_num;
+            //cout<<"receive error"<<endl;
+        //cout<<"received ACK: "<<ack_header.ack_num<<endl;
+        
+        logout_l.lock();
+        logout
+        <<timenow()
+        <<"RECEIVE ACK: "
+        <<thatip
+        <<"/"
+        <<thatackport
+        <<" "
+        <<thisip
+        <<"/"
+        <<thisackport
+        <<" "
+        <<to_string(ack_header.ack_num)
+        <<" "
+        <<"ACK"
+        <<endl;
+        logout_l.unlock();
+        
+        return ack_header.ack_num;
     }
     
     void shut()
@@ -149,20 +204,28 @@ public:
         memcpy(temp_cstr, &s_header, HEADER_SIZE);
         memcpy((temp_cstr + HEADER_SIZE), content_cstr, SEG_SIZE);
         string temp = temp_cstr;
-        //cout<<temp<<endl;
+        cout<<temp.size()<<endl;
         unsigned long sum = 0;
-        for (int i = 0; i < temp.size(); i+=4)
+        int i = 0;
+        for (i = 0; i < temp.size(); i+=2)
         {
-            string two_bytes = temp.substr(i,min(4,(int)(temp.size()- i)));
             int temp_sum = 0;
-            for (int j = 0; j < min(4, (int)(temp.size()-i)); j++) {
-                temp_sum += ((int)two_bytes[i+j] << min(4,(int)(temp.size()-i)) - j);
+            string two_bytes = temp.substr(i,min(2,(int)(temp.size()- i)));
+            if (two_bytes.length() == 1) {
+                temp_sum += (int)two_bytes[0];
             }
+            else
+            {
+                temp_sum += (int)two_bytes[0] * 256;
+                temp_sum += (int)two_bytes[1];
+            }
+            
             sum = sum + temp_sum;
+            //cout<<two_bytes<<":"<<temp_sum<<endl;
         }
         unsigned short remainder = sum % 65536;
         unsigned short checksum = (sum >> 16) + remainder;
-        s_header.ck_sum = ~checksum;
+        s_header.ck_sum = 65535 - checksum;
         memcpy(temp_cstr, &s_header, HEADER_SIZE);
         
         
@@ -170,47 +233,138 @@ public:
         if( sendto(s, temp_cstr, HEADER_SIZE  + content.length(), 0,(sockaddr*) &cp_addr, sizeof(cp_addr)) == -1)
         	cout<<"send error"<<endl;
         else
-            cout<<20+content.length()<<" characters"<<endl<<"check sum:"<<~checksum<<endl;
+        {
+            logout_l.lock();
+            logout
+            <<timenow()
+            <<"SEND DATA: "
+            <<thisip
+            <<"/"
+            <<thisport
+            <<" "
+            <<thatip
+            <<"/"
+            <<thatport
+            <<" "
+            <<to_string(s_header.seq_num);
+            if (s_header.fin == 1) {
+                logout<<" "<<"FIN"<<endl;
+            }
+            else
+                logout<<endl;
+            logout_l.unlock();
+        }
     }
     
     string receive_packet(tcp_header *r_header)
     {
         char buff[SEG_SIZE + HEADER_SIZE];
-        char content[SEG_SIZE];
+        char content[SEG_SIZE+1];
         unsigned int t;
         t = sizeof(cp_addr);
         //cout<<"receiving..."<<endl;
-        int r = recvfrom(s, buff , SEG_SIZE+HEADER_SIZE, 0,(sockaddr*)&cp_addr, &t);
-        cout<<r<<" bytes data received."<<endl;
+        recvfrom(s, buff , SEG_SIZE+HEADER_SIZE, 0,(sockaddr*)&cp_addr, &t);
+        //cout<<r<<" bytes data received."<<endl;
         //buff[r] = '\0';
         strcpy(content, buff+HEADER_SIZE);
         content[SEG_SIZE] = '\0';
         string result = content;
         //cout<<content<<endl;
         memcpy(r_header, buff, HEADER_SIZE);
-        cout<<"content:"<<result<<endl;
+        //cout<<"content:"<<result<<endl;
         //cout<<result.length()<<endl;
         unsigned short checksum = r_header->ck_sum;
+        r_header->ck_sum = 65535;
+        memcpy(buff, r_header, HEADER_SIZE);
+        
+        
+        
         string temp = buff;
-        
+        temp = temp.substr(0,SEG_SIZE+HEADER_SIZE);
+        //cout<<temp.size()<<endl;
+        int i = 0;
         unsigned long sum = 0;
-        for (int i = 0; i < temp.size(); i+=4)
+        for (i = 0; i < temp.size(); i+=2)
         {
-            string two_bytes = temp.substr(i,min(4,(int)(temp.size()- i)));
             int temp_sum = 0;
-            for (int j = 0; j < min(4, (int)(temp.size()-i)); j++) {
-                temp_sum += ((int)two_bytes[i+j] << min(4,(int)(temp.size()-i)) - j);
+            string two_bytes = temp.substr(i,min(2,(int)(temp.size()- i)));
+            if (two_bytes.length() == 1) {
+                temp_sum += (int)two_bytes[0];
             }
-            
+            else
+            {
+                temp_sum += (int)two_bytes[0] * 256;
+                temp_sum += (int)two_bytes[1];
+            }
             sum = sum + temp_sum;
+            //cout<<two_bytes<<":"<<temp_sum<<endl;
         }
-        cout<<sum<<" "<<checksum<<endl;
-        sum = sum + checksum - 1;
-        if (sum % 65536 + (sum >> 16) != 65535) {
-            cout<<"checksum wrong:"<<sum % 65536 + (sum >> 16)<<endl;
-        }
-        sleep(30);
+        sum = sum + 257*2;
+        //cout<<sum<<" "<<checksum<<" "<<i<<endl;
         
+        sum = sum + checksum;
+        
+        if (r_header->fin == 1) {
+            
+            logout_l.lock();
+            logout
+            <<timenow()
+            <<"RECEIVE DATA: "
+            <<thatip
+            <<"/"
+            <<thatport
+            <<" "
+            <<thisip
+            <<"/"
+            <<thisport
+            <<" "
+            <<to_string(r_header->seq_num)
+            <<" "
+            <<"FIN"
+            <<endl;
+            logout_l.unlock();
+            
+            return result;
+        }
+        
+        if (sum % 65536 + (sum >> 16) != 65535) {
+            
+            logout_l.lock();
+            logout
+            <<timenow()
+            <<"RECEIVE DATA"
+            <<thatip
+            <<"/"
+            <<thatport
+            <<" "
+            <<thisip
+            <<"/"
+            <<thisport
+            <<" "
+            <<to_string(r_header->seq_num)
+            <<" "
+            <<"CORRUPTED"
+            <<endl;
+            logout_l.unlock();
+            
+            return receive_packet(r_header);
+        }
+        
+        logout_l.lock();
+        logout
+        <<timenow()
+        <<"RECEIVE DATA: "
+        <<thatip
+        <<"/"
+        <<thatport
+        <<" "
+        <<thisip
+        <<"/"
+        <<thisport
+        <<" "
+        <<to_string(r_header->seq_num)
+        <<endl;
+        logout_l.unlock();
         
         return result;
         
