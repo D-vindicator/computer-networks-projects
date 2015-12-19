@@ -199,7 +199,8 @@ public:
     void send_packet(tcp_header s_header, string content)
     {
         char temp_cstr[HEADER_SIZE + SEG_SIZE];
-        char content_cstr[SEG_SIZE];
+        char content_cstr[SEG_SIZE+1];
+        //cout<<sizeof(content.c_str())<<"strcpy next"<<endl;
         strcpy(content_cstr, content.c_str());
         memcpy(temp_cstr, &s_header, HEADER_SIZE);
         memcpy((temp_cstr + HEADER_SIZE), content_cstr, SEG_SIZE);
@@ -230,7 +231,7 @@ public:
         
         
         
-        if( sendto(s, temp_cstr, HEADER_SIZE  + content.length(), 0,(sockaddr*) &cp_addr, sizeof(cp_addr)) == -1)
+        if( sendto(s, temp_cstr, HEADER_SIZE  + SEG_SIZE, 0,(sockaddr*) &cp_addr, sizeof(cp_addr)) == -1)
         	cout<<"send error"<<endl;
         else
         {
@@ -259,7 +260,7 @@ public:
     string receive_packet(tcp_header *r_header)
     {
         char buff[SEG_SIZE + HEADER_SIZE];
-        char content[SEG_SIZE+1];
+        char content[SEG_SIZE+2];
         unsigned int t;
         t = sizeof(cp_addr);
         //cout<<"receiving..."<<endl;
@@ -332,7 +333,7 @@ public:
             logout_l.lock();
             logout
             <<timenow()
-            <<"RECEIVE DATA"
+            <<"RECEIVE DATA:"
             <<thatip
             <<"/"
             <<thatport

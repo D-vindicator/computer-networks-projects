@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
             s_tcp.send_ack(base_num + r_str.length());
             base_num +=r_str.length();
             ofs.write(r_str.c_str(), r_str.length());
-            //cout<<"written content length: "<<r_str.length()<<endl;
+            cout<<"written content length: "<<r_str.length()<<endl;
             //cout<<"base number: "<<base_num<<endl;
             if (r_str.length() != SEG_SIZE)
                 break;
